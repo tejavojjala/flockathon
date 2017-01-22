@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+		<meta charset="UTF-8" />	
+    </head>
+    <body>
+        <div>
+			<input type="radio" name="httpmethod" value="GET" checked="checked" onclick="toggleBody()">GET</input>
+			<input type="radio" name="httpmethod" value="POST" onclick="toggleBody()">POST</input><br>
+	        <input type="text" style=" float:left;" id="api_endpoint" value="">
+			<button type="button" onClick="send(0)">Send</button>
+			<li id="loading_text" style="display:none">Please wait...</li>
+        </div>
+
+		<div style="padding-left:0px;">
+<button type="button" id="auth_button" style="color:darkgrey;float:left;" onClick="changeText(1)">Authorization</button>		
+<button type="button" id="headers_button" style="color:black;float:left;" onClick="changeText(2)">Headers</button>			
+<button type="button" id="body_button" style="color:darkgrey; float:left; display:none" onClick="changeText(3)">Body</button>			
+		</div>
+		<br></br>
+		<div id="auth_block" style="display:none;">
+			<li style=" float:left; padding-right:30px;">Type :</li> 
+			<input type="radio" name="auth_select" value="noauth" onclick="authChanged()" checked="checked">No Auth</input>
+			<input type="radio" name="auth_select" value="basicauth" onclick="authChanged()">Basic Auth</input>
+			<input type="radio" name="auth_select" value="oauth1.0" onclick="authChanged()">OAuth 1.0</input>
+			<br>
+			<div id="basicauth_block" style="display:none">
+				<div>
+					<li style="float:left; padding-right:30px;">Username </li> 
+					<input type="text" id="basicauth_username" value="">
+				</div>
+				<div>
+					<li style="float:left; padding-right:30px;">Password </li> 
+					<input type="password" id="basicauth_password" value="">
+				</div>
+			</div>
+			<div id="oauth1.0_block" style="display:none">
+				<div>
+					<li style="float:left; padding-right:30px;">Consumer Key </li> 
+					<input type="text" id="oauth1.0_consumerkey" value="">
+				</div>
+				<div>
+					<li style="float:left; padding-right:30px;">Consumer Secret </li> 
+					<input type="password" id="oauth1.0_consumersecret" value="">
+				</div>
+				<div>
+					<li style="float:left; padding-right:30px;">Token </li> 
+					<input type="text" id="oauth1.0_token" value="">
+				</div>
+				<div>
+					<li style="float:left; padding-right:30px;">Token Secret </li> 
+					<input type="password" id="oauth1.0_tokensecret" value="">
+				</div>
+				<div>
+					<li style="float:left; padding-right:30px;">Signature Method </li> 
+		<input type="radio" name="signaturemethod" value="HMAC-SHA1" checked="checked">HMAC-SHA1</input>
+			<input type="radio" name="signaturemethod" value="HMAC-SHA256">HMAC-SHA256</input>
+			<input type="radio" name="signaturemethod" value="PLAINTEXT">PLAINTEXT</input>
+				</div>
+				<div>
+					<li style="float:left; padding-right:30px;">Timestamp </li> 
+					<input type="password" id="oauth1.0_timestamp" value="">
+				</div>
+				<div>
+					<li style="float:left; padding-right:30px;">Nonce </li> 
+					<input type="password" id="oauth1.0_nonce" value="">
+				</div>
+				<div>
+					<li style="float:left; padding-right:30px;">Version </li> 
+					<input type="password" id="oauth1.0_version" value="">
+				</div>
+			</div>
+		</div>
+
+        <textarea id="headers_data" rows="10" cols="500" placeholder="in each row add a single key value pair format => key:value"></textarea>
+
+		<div id="body_block" style="display:none">
+		<input type="radio" name="body_select" value="application/json" checked="checked">application/json</input>
+<input type="radio" name="body_select" value="x-www-form-urlencoded" >x-www-form-urlencoded</input>
+	<input type="radio" name="body_select" value="text/plain">text/plain</input>
+			<textarea id="body_data" rows="10" cols="500"></textarea>
+		</div>
+
+		<div id="response_block">
+			<br>
+			<p>Response</p>
+			<br>
+	        <textarea id="response_data" rows="10" cols="500"></textarea>
+		</div>
+
+		<br>
+        <p id="demo"></p>
+		<div>
+			<button type="button" onClick="send(1)">Share Content In App</button>
+			<button type="button" onClick="closeapp()">Close App</button>
+		</div>
+
+		<!-- jQuery if needed -->
+        <script type="text/javascript" src="https://apps-static.flock.co/js-sdk/0.1.0/flock.js"></script>
+                <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
+		<script type="text/javascript">
+
+			function send(share)
+			{
+				var headers_data = document.getElementById("headers_data").value;	
+				var api_endpoint = document.getElementById("api_endpoint").value;			
+				var httpmethod = $("input:radio[name=httpmethod]:checked").val();
+				var auth_type = $("input:radio[name=auth_select]:checked").val();
+				var body_type =  $("input:radio[name=body_select]:checked").val();
+				var body_data = document.getElementById("body_data").value;
+				var testapiresponse=document.getElementById("response_data").value;
+				var chatid="{{ chat }}";
+				var auth_data;
+				document.getElementById("loading_text").style.display="block";
+				if(auth_type=="noauth")
+				{
+					auth_data=JSON.stringify({
+						"auth_type":"noauth"
+					});
+				}
+				else if(auth_type=="basicauth")
+				{
+					var username=document.getElementById("basicauth_username").value;
+					var password=document.getElementById("basicauth_password").value;
+					auth_data=JSON.stringify({
+						"auth_type":"basicauth",
+						"username":username,
+						"password":password
+					});
+				}
+				else if(auth_type=="oauth1.0")
+				{
+					var consumerkey=document.getElementById("oauth1.0_consumerkey").value;
+					var consumersecret=document.getElementById("oauth1.0_consumersecret").value;
+					var token=document.getElementById("oauth1.0_token").value;
+					var tokensecret=document.getElementById("oauth1.0_tokensecret").value;
+					var signaturemethod=$("input:radio[name=signaturemethod]:checked").val();
+					var timestamp=Math.floor(Date.now()/1000);
+					var max=999999,min=100000;
+					var nonce=Math.floor(Math.random()*(max-min+1)+min);
+					var version=document.getElementById("oauth1.0_version").value;
+					auth_data=JSON.stringify({
+						"auth_type":"oauth1.0",
+						"consumerkey":consumerkey,
+						"consumersecret":consumersecret,
+						"token":token,
+						"tokensecret":tokensecret,
+						"signaturemethod":signaturemethod,
+						"timestamp":timestamp,
+						"nonce":nonce,
+						"version":version,
+					});
+				}
+				$.ajax({
+				   url: 'https://87fdc75a.ngrok.io/processapi',
+				   async:true,
+				   crossOrigin:true,
+				   data:JSON.stringify({
+					"chatId":chatid,
+					"api_endpoint":api_endpoint,
+					"headers_data":headers_data,
+					"body_type":body_type,
+					"body_data":body_data,
+					"auth_type":auth_type,
+					"auth_data":auth_data,
+					"httpmethod":httpmethod,
+					"response_data":testapiresponse,
+					"share":share,
+				}),
+				   error: function() {
+				   	if(share==1)
+				   	{
+				   		flock.close();
+				   	}
+			   		document.getElementById("loading_text").style.display="none";
+			   		document.getElementById("response_data").value="";
+				   	alert("An Error Occured. Please Try Again");
+				   },
+				   success: function(data) {
+					   	if(share==1)
+					   	{
+					   		flock.close();
+					   	}
+				   		var x = typeof data;
+				   		if(x=="object")
+				   		{
+				   			data=JSON.stringify(data,null,2);
+					   		document.getElementById("response_data").value=data;		
+				   		}
+				   		else
+				   		{
+					   		document.getElementById("response_data").value=data;		
+				   		}
+				   		document.getElementById("loading_text").style.display="none";				   
+				   },
+				   type: 'POST'
+				});
+			};			
+
+			function changeText(num)
+			{
+				document.getElementById('auth_button').style.color="darkgrey";	
+				document.getElementById('headers_button').style.color="darkgrey";	
+				document.getElementById('body_button').style.color="darkgrey";
+				document.getElementById("headers_data").style.display="none";
+				document.getElementById("body_block").style.display="none";
+				document.getElementById("auth_block").style.display="none";
+				if(num==1)
+				{
+					document.getElementById("auth_button").style.color="black";
+					document.getElementById("auth_block").style.display="block";
+				}
+				else if(num==2)
+				{
+					document.getElementById("headers_data").style.display="block";
+					document.getElementById("headers_button").style.color="black";
+				}
+				else if(num==3)
+				{
+					document.getElementById("body_block").style.display="block";
+					document.getElementById("body_button").style.color="black";
+				}				
+			}
+
+			function closeapp()
+			{
+				flock.close();
+			}
+
+
+
+			function authChanged()
+			{
+				var x=$("input:radio[name=auth_select]:checked").val();
+				document.getElementById("basicauth_block").style.display="none";
+				document.getElementById("oauth1.0_block").style.display="none";
+				if(x=="basicauth")
+				{
+					document.getElementById("basicauth_block").style.display="block";
+				}
+				else if(x=="oauth1.0")
+				{
+					document.getElementById("oauth1.0_block").style.display="block";
+				}
+			}
+
+			function toggleBody()
+			{
+				var x=$("input:radio[name=httpmethod]:checked").val();
+				if(x=="POST")
+				{
+					document.getElementById("body_button").style.display="block";
+				}
+				else
+				{
+					document.getElementById("body_button").style.display="none";					
+				}
+			}
+			$(window).load(function () {
+				if($("input:radio[name=httpmethod]:checked").val()=="POST")
+				{
+					document.getElementById("body_button").style.display="block";
+				}
+				else
+				{
+					document.getElementById("body_button").style.display="none";					
+				}
+				var x=$("input:radio[name=auth_select]:checked").val();
+				if(x=="basicauth")
+				{
+					document.getElementById("basicauth_block").style.display="block";
+				}
+				else if(x=="oauth1.0")
+				{
+					document.getElementById("oauth1.0_block").style.display="block";
+				}
+			});
+		</script>
+	</body>
+
+</html>
